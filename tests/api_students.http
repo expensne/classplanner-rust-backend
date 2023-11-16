@@ -1,0 +1,37 @@
+@hostname = 127.0.0.1:5000
+@endpoint = /v1
+@baseUrl = http://{{hostname}}{{endpoint}}
+@contentType = application/json
+
+### Students
+
+GET {{baseUrl}}/students
+
+### 
+
+GET {{baseUrl}}/students/654e1e2443203b9d84cc87a0
+
+###
+
+POST {{baseUrl}}/students/
+Content-Type: application/json
+
+{
+  "firstname": "Foo",
+  "lastname": "Bar"
+}
+
+###
+
+PUT {{baseUrl}}/students/654e1e1443203b9d84cc87a0
+Content-Type: application/json
+
+{
+  "id": "654e1e1443203b9d84cc87a0",
+  "firstname": "Neu",
+  "lastname": "Test"
+}
+
+###
+
+DELETE {{baseUrl}}/students/654e1e1443203b9d84cc87a0
