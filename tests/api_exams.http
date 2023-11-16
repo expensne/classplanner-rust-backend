@@ -1,0 +1,51 @@
+@hostname = 127.0.0.1:5000
+@endpoint = /v1
+@baseUrl = http://{{hostname}}{{endpoint}}
+@contentType = application/json
+
+
+
+### Exams
+
+GET {{baseUrl}}/exams
+
+###
+
+POST {{baseUrl}}/exams/
+Content-Type: application/json
+
+{
+  "name": "Ex1",
+  "maxPoints": 20,
+  "gradingScale": {
+    "A": 80,
+    "B": 70,
+    "C": 60,
+    "D": 50,
+    "E": 40,
+    "F": 30
+  }
+}
+
+###
+
+OPTIONS {{baseUrl}}/Exams
+
+###
+
+PUT {{baseUrl}}/Exams/2
+Content-Type: application/json
+
+{
+  "id": 2,
+  "name": "Update",
+  "maxScore": 20,
+  "gradingScale": {
+    "aPercent": 80,
+    "bPercent": 70,
+    "cPercent": 60,
+    "dPercent": 50,
+    "ePercent": 40,
+    "fPercent": 30
+  }
+}
