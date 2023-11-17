@@ -1,35 +1,38 @@
-use axum::extract::{Path, State};
 use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
-use axum::http::{HeaderValue, Method, StatusCode};
-use axum::response::IntoResponse;
-use axum::Json;
-use axum::{routing::delete, routing::get, routing::post, routing::put, Router};
+use axum::http::{HeaderValue, Method};
+use axum::{routing::get, routing::post, Router};
+use consts::API_VERSION;
+use databases::database::IDatabase;
+use databases::mongo_database::MongoDatabase;
 use dotenv::dotenv;
-use mongodb::bson::{self, doc, document};
-use serde::{Deserialize, Serialize};
+use endpoints::exam::{delete_exam, get_exam, get_exams, post_exam, put_exam};
+use endpoints::student::{delete_student, get_student, get_students, post_student, put_student};
+use endpoints::welcome;
 use std::env;
-use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
+use std::sync::Arc;
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
-use tracing::event;
 
-use crate::db::Student;
-
-mod db;
-
-const API_VERSION: &str = "/v1";
+mod consts;
+mod custom;
+mod databases;
+mod endpoints;
+mod helper;
+mod models;
 
 #[derive(Clone)]
-struct AppState {
-    db: db::Mongo,
+pub struct AppState {
+    database: Arc<dyn IDatabase + Sync + Send>,
 }
 
 #[tokio::main]
-async fn main() -> mongodb::error::Result<()> {
+async fn main() -> custom::Result<()> {
+    // Init logging
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
+    // Get secrets
     dotenv().ok();
 
     let mongo_host = env::var("MONGODB_HOST").unwrap();
@@ -37,7 +40,8 @@ async fn main() -> mongodb::error::Result<()> {
     let mongo_user = env::var("MONGODB_USER").unwrap();
     let mongo_password = env::var("MONGODB_PASSWORD").unwrap();
 
-    let mongo = db::Mongo::new(
+    // Create DB
+    let mongo = MongoDatabase::new(
         &mongo_user,
         &mongo_password,
         &mongo_host,
@@ -45,17 +49,14 @@ async fn main() -> mongodb::error::Result<()> {
     )
     .await?;
 
-    let state = AppState { db: mongo };
+    // Create API
+    let state = AppState {
+        database: Arc::new(mongo),
+    };
 
     let cors = CorsLayer::new()
         .allow_origin("http://localhost:5000".parse::<HeaderValue>().unwrap())
-        .allow_methods([
-            Method::GET,
-            Method::PUT,
-            Method::POST,
-            //Method::PATCH,
-            Method::DELETE,
-        ])
+        .allow_methods([Method::GET, Method::PUT, Method::POST, Method::DELETE])
         .allow_credentials(true)
         .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]);
 
@@ -69,82 +70,21 @@ async fn main() -> mongodb::error::Result<()> {
                 "/students/:id",
                 get(get_student).put(put_student).delete(delete_student),
             )
+            .route("/exams", get(get_exams))
+            .route("/exams/", post(post_exam))
+            .route(
+                "/exams/:id",
+                get(get_exam).put(put_exam).delete(delete_exam),
+            )
             .with_state(state)
             .layer(cors)
             .layer(TraceLayer::new_for_http()),
     );
 
-    axum::Server::bind(&"127.0.0.1:5000".parse().unwrap())
+    axum::Server::bind(&"0.0.0.0:5000".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
 
     Ok(())
-}
-
-async fn welcome() -> String {
-    format!("Welcome to Classplanner API {API_VERSION}")
-}
-
-async fn get_student(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    let student = state.db.find_student(&id).await;
-    match student {
-        Ok(student) => (StatusCode::OK, Json(student)),
-        Err(err) => {
-            event!(tracing::Level::ERROR, "Error getting student: {}", err);
-            (StatusCode::NOT_FOUND, Json(Student::default()))
-        }
-    }
-}
-
-async fn get_students(State(state): State<AppState>) -> impl IntoResponse {
-    let students = state.db.find_students().await.unwrap();
-    (StatusCode::OK, Json(students))
-}
-
-async fn post_student(
-    State(state): State<AppState>,
-    Json(payload): Json<db::InsertStudent>,
-) -> impl IntoResponse {
-    let student = state.db.insert_student(payload.to_owned()).await.unwrap();
-    (StatusCode::CREATED, Json(student))
-}
-
-async fn put_student(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-    Json(payload): Json<db::Student>,
-) -> impl IntoResponse {
-    if payload.id != id {
-        return (StatusCode::BAD_REQUEST, Json(payload));
-    }
-
-    let student = state.db.replace_student(payload.to_owned()).await;
-
-    match student {
-        Ok(student) => (StatusCode::OK, Json(student)),
-        Err(err) => {
-            event!(tracing::Level::ERROR, "Error updating student: {}", err);
-            (StatusCode::NOT_FOUND, Json(payload))
-        }
-    }
-}
-
-async fn delete_student(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
-    let result = state.db.delete_student(&id).await;
-
-    match result {
-        Ok(_) => (StatusCode::OK, Json(Student::default())),
-        Err(err) => {
-            event!(
-                tracing::Level::ERROR,
-                "Error deleting student with id: {}",
-                err
-            );
-            (StatusCode::NO_CONTENT, Json(Student::default()))
-        }
-    }
 }

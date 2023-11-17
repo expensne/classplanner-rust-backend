@@ -9,7 +9,7 @@ GET {{baseUrl}}/students
 
 ### 
 
-GET {{baseUrl}}/students/654e1e2443203b9d84cc87a0
+GET {{baseUrl}}/students/65571745183367eeb5aded5b
 
 ###
 
@@ -17,19 +17,33 @@ POST {{baseUrl}}/students/
 Content-Type: application/json
 
 {
-  "firstname": "Foo",
-  "lastname": "Bar"
+  "firstName": "Foo",
+  "lastName": "Bar",
+  "scores": [
+    {
+      "examId": "abc",
+      "pointsScored": 5,
+      "isPostscript": false
+    }
+  ]
 }
 
 ###
 
-PUT {{baseUrl}}/students/654e1e1443203b9d84cc87a0
+PUT {{baseUrl}}/students/6557487f18c545c1f64ff19a
 Content-Type: application/json
 
 {
-  "id": "654e1e1443203b9d84cc87a0",
-  "firstname": "Neu",
-  "lastname": "Test"
+  "id": "6557487f18c545c1f64ff19a",
+  "firstName": "NotFoo",
+  "lastName": "NotBar",
+  "scores": [
+    {
+      "examId": "abc",
+      "pointsScored": 5,
+      "isPostscript": false
+    }
+  ]
 }
 
 ###
