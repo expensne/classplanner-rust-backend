@@ -19,7 +19,7 @@ pub async fn get_exam(State(state): State<AppState>, Path(id): Path<String>) -> 
     match exam {
         Ok(exam) => (StatusCode::OK, Json(exam)).into_response(),
         Err(err) => {
-            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let status = StatusCode::NOT_FOUND;
             let message = err.to_string();
 
             let error_response =
@@ -53,7 +53,7 @@ pub async fn put_exam(
     match exam {
         Ok(exam) => (StatusCode::OK, Json(exam)).into_response(),
         Err(err) => {
-            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let status = StatusCode::NOT_FOUND;
             let message = err.to_string();
 
             let error_response =
@@ -70,7 +70,7 @@ pub async fn delete_exam(State(state): State<AppState>, Path(id): Path<String>) 
     match result {
         Ok(_) => (StatusCode::OK).into_response(),
         Err(err) => {
-            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let status = StatusCode::NOT_FOUND;
             let message = err.to_string();
 
             let error_response =

@@ -7,15 +7,13 @@ use axum::{
 
 use crate::{consts::API_VERSION, helper::get_error_response, models::student::Student, AppState};
 
-
-
 pub async fn get_student(State(state): State<AppState>, Path(id): Path<String>) -> Response {
     let student = state.database.find_student(&id).await;
 
     match student {
         Ok(student) => (StatusCode::OK, Json(student)).into_response(),
         Err(err) => {
-            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let status = StatusCode::NOT_FOUND;
             let message = err.to_string();
 
             let error_response = get_error_response(
@@ -61,7 +59,7 @@ pub async fn put_student(
     match student {
         Ok(student) => (StatusCode::OK, Json(student)).into_response(),
         Err(err) => {
-            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let status = StatusCode::NOT_FOUND;
             let message = err.to_string();
 
             let error_response = get_error_response(
@@ -81,7 +79,7 @@ pub async fn delete_student(State(state): State<AppState>, Path(id): Path<String
     match result {
         Ok(_) => (StatusCode::OK).into_response(),
         Err(err) => {
-            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let status = StatusCode::NOT_FOUND;
             let message = err.to_string();
 
             let error_response = get_error_response(
