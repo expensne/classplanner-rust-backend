@@ -1,8 +1,6 @@
 use mongodb::bson::Document;
 use serde::{Deserialize, Serialize};
 
-use crate::endpoints::student;
-
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[allow(non_snake_case)]
 pub struct Score {
