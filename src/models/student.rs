@@ -1,10 +1,11 @@
+use std::collections::HashMap;
+
 use mongodb::bson::Document;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[allow(non_snake_case)]
 pub struct Score {
-    pub examId: String,
     pub pointsScored: f64,
     pub isPostscript: bool,
 }
@@ -14,7 +15,7 @@ pub struct Score {
 pub struct Student {
     pub firstName: String,
     pub lastName: String,
-    pub scores: Vec<Score>,
+    pub scores: HashMap<String, Score>,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -23,7 +24,7 @@ pub struct StudentResponse {
     pub id: String,
     pub firstName: String,
     pub lastName: String,
-    pub scores: Vec<Score>,
+    pub scores: HashMap<String, Score>,
 }
 
 impl From<Student> for StudentResponse {
@@ -43,17 +44,20 @@ impl From<Document> for StudentResponse {
         let first_name = doc.get_str("firstName").unwrap().to_string();
         let last_name = doc.get_str("lastName").unwrap().to_string();
         let scores = doc
-            .get_array("scores")
+            .get_document("scores")
             .unwrap()
-            .iter()
-            .map(|item| item.as_document().unwrap())
-            .map(|doc| Score {
-                examId: doc.get_str("examId").unwrap().to_string(),
-                pointsScored: doc.get_f64("pointsScored").unwrap(),
-                isPostscript: doc.get_bool("isPostscript").unwrap(),
+            .into_iter()
+            .map(|(key, value)| {
+                let value_doc = value.as_document().unwrap();
+                (
+                    key.to_string(),
+                    Score {
+                        pointsScored: value_doc.get_f64("pointsScored").unwrap(),
+                        isPostscript: value_doc.get_bool("isPostscript").unwrap(),
+                    },
+                )
             })
             .collect();
-
         Self {
             id,
             firstName: first_name,
