@@ -77,7 +77,7 @@ pub async fn delete_student(State(state): State<AppState>, Path(id): Path<String
     let result = state.database.delete_student(&id).await;
 
     match result {
-        Ok(_) => (StatusCode::OK).into_response(),
+        Ok(_) => (StatusCode::NO_CONTENT).into_response(),
         Err(err) => {
             let status = StatusCode::NOT_FOUND;
             let message = err.to_string();
