@@ -55,31 +55,31 @@ async fn main() -> custom::Result<()> {
     };
 
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:9000".parse::<HeaderValue>().unwrap())
-        .allow_methods([Method::GET, Method::PUT, Method::POST, Method::DELETE])
+        .allow_origin("https://cp.dev101.de".parse::<HeaderValue>().unwrap())
         .allow_credentials(true)
+        .allow_methods([Method::GET, Method::PUT, Method::POST, Method::DELETE])
         .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]);
 
-    let app = Router::new().nest(
-        API_VERSION,
-        Router::new()
-            .route("/", get(welcome))
-            .route("/students", get(get_students))
-            .route("/students/", post(post_student))
-            .route(
-                "/students/:id",
-                get(get_student).put(put_student).delete(delete_student),
-            )
-            .route("/exams", get(get_exams))
-            .route("/exams/", post(post_exam))
-            .route(
-                "/exams/:id",
-                get(get_exam).put(put_exam).delete(delete_exam),
-            )
-            .with_state(state)
-            .layer(cors)
-            .layer(TraceLayer::new_for_http()),
-    );
+    let api_routes = Router::new()
+        .route("/", get(welcome))
+        .route("/students", get(get_students))
+        .route("/students/", post(post_student))
+        .route(
+            "/students/:id",
+            get(get_student).put(put_student).delete(delete_student),
+        )
+        .route("/exams", get(get_exams))
+        .route("/exams/", post(post_exam))
+        .route(
+            "/exams/:id",
+            get(get_exam).put(put_exam).delete(delete_exam),
+        )
+        .with_state(state);
+
+    let app = Router::new()
+        .nest(API_VERSION, api_routes)
+        .layer(cors)
+        .layer(TraceLayer::new_for_http());
 
     axum::Server::bind(&"0.0.0.0:5000".parse().unwrap())
         .serve(app.into_make_service())
