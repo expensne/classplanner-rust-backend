@@ -1,18 +1,15 @@
-use core::panic;
-
+use super::encrypted_api_interface::EncryptedAPIInterface;
+use crate::custom;
+use crate::helper::parse_id;
+use crate::models::exams::exam::{Exam, ExamResponse};
+use crate::models::students::encrypted_student_in::EncryptedStudentIn;
+use crate::models::students::encrypted_student_out::EncryptedStudentOut;
 use axum::async_trait;
+use core::panic;
 use futures::StreamExt;
 use mongodb::bson::{doc, Document};
 use mongodb::results::DeleteResult;
 use mongodb::{Client, Collection, Cursor, Database};
-
-use crate::custom;
-use crate::helper::parse_id;
-use crate::models::exams::exam::{Exam, ExamResponse};
-use crate::models::students::student_in::StudentIn;
-use crate::models::students::student_out::StudentOut;
-
-use super::cp_database::CPDatabase;
 
 #[derive(Clone)]
 pub struct MongoDatabase {
@@ -70,24 +67,28 @@ impl MongoDatabase {
 }
 
 #[async_trait]
-impl CPDatabase for MongoDatabase {
-    async fn list_students(&self) -> custom::Result<Vec<StudentOut>> {
+impl EncryptedAPIInterface for MongoDatabase {
+    async fn list_students(&self) -> custom::Result<Vec<EncryptedStudentOut>> {
         let docs: Vec<Document> = self.list(self.coll_name_students).await.unwrap();
-        let students: Vec<StudentOut> = docs.into_iter().map(StudentOut::from).collect();
+        let students: Vec<EncryptedStudentOut> =
+            docs.into_iter().map(EncryptedStudentOut::from).collect();
 
         Ok(students)
     }
 
-    async fn find_student(&self, id: &str) -> custom::Result<StudentOut> {
+    async fn find_student(&self, id: &str) -> custom::Result<EncryptedStudentOut> {
         let doc = self.find(self.coll_name_students, id).await?;
 
         match doc {
-            Some(doc) => Ok(StudentOut::from(doc)),
+            Some(doc) => Ok(EncryptedStudentOut::from(doc)),
             None => Err(From::from("Student not found")),
         }
     }
 
-    async fn insert_student(&self, student: StudentIn) -> custom::Result<StudentOut> {
+    async fn insert_student(
+        &self,
+        student: EncryptedStudentIn,
+    ) -> custom::Result<EncryptedStudentOut> {
         let result = self
             .database
             .collection(self.coll_name_students)
@@ -96,12 +97,16 @@ impl CPDatabase for MongoDatabase {
 
         let id = result.inserted_id.as_object_id().unwrap().to_hex();
 
-        let mut response = StudentOut::from(student);
+        let mut response = EncryptedStudentOut::from(student);
         response.id = id.to_string();
         Ok(response)
     }
 
-    async fn replace_student(&self, id: &str, student: StudentIn) -> custom::Result<StudentOut> {
+    async fn replace_student(
+        &self,
+        id: &str,
+        student: EncryptedStudentIn,
+    ) -> custom::Result<EncryptedStudentOut> {
         let id_object = parse_id(id)?;
 
         let result = self
@@ -112,7 +117,7 @@ impl CPDatabase for MongoDatabase {
 
         match result.modified_count {
             1 => {
-                let mut response = StudentOut::from(student);
+                let mut response = EncryptedStudentOut::from(student);
                 response.id = id.to_string();
                 Ok(response)
             }
@@ -126,7 +131,7 @@ impl CPDatabase for MongoDatabase {
 
         let result: DeleteResult = self
             .database
-            .collection::<Collection<StudentOut>>(self.coll_name_students)
+            .collection::<Collection<EncryptedStudentOut>>(self.coll_name_students)
             .delete_one(doc! {"_id": id_object}, None)
             .await?;
 

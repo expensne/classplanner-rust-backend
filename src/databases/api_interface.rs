@@ -8,7 +8,7 @@ use crate::{
 use axum::async_trait;
 
 #[async_trait]
-pub trait CPDatabase {
+pub trait APIInterface {
     async fn list_students(&self) -> custom::Result<Vec<StudentOut>>;
     async fn find_student(&self, id: &str) -> custom::Result<StudentOut>;
     async fn insert_student(&self, student: StudentIn) -> custom::Result<StudentOut>;
