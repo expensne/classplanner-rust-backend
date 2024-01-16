@@ -3,7 +3,7 @@ use axum::http::{HeaderValue, Method};
 use axum::{routing::get, routing::post, Router};
 use consts::API_VERSION;
 use databases::encrypted_database::EncryptedDatabase;
-use databases::i_database::IDatabase;
+use databases::cp_database::CPDatabase;
 use databases::mongo_database::MongoDatabase;
 use dotenv::dotenv;
 use endpoints::exam::{delete_exam, get_exam, get_exams, post_exam, put_exam};
@@ -23,7 +23,7 @@ mod models;
 
 #[derive(Clone)]
 pub struct AppState {
-    database: Arc<dyn IDatabase + Sync + Send>,
+    database: Arc<dyn CPDatabase + Sync + Send>,
 }
 
 #[tokio::main]

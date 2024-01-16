@@ -9,16 +9,16 @@ use crate::{
     },
 };
 
-use super::i_database::IDatabase;
+use super::cp_database::CPDatabase;
 
 pub struct EncryptedDatabase {
-    database: Box<dyn IDatabase + Send + Sync>,
+    database: Box<dyn CPDatabase + Send + Sync>,
     ecryption_key: String,
 }
 
 impl EncryptedDatabase {
     pub async fn new(
-        database: Box<dyn IDatabase + Send + Sync>,
+        database: Box<dyn CPDatabase + Send + Sync>,
         ecryption_key: String,
     ) -> custom::Result<Self> {
         Ok(Self {
@@ -37,7 +37,7 @@ impl EncryptedDatabase {
 }
 
 #[async_trait]
-impl IDatabase for EncryptedDatabase {
+impl CPDatabase for EncryptedDatabase {
     async fn list_students(&self) -> custom::Result<Vec<StudentResponse>> {
         let encrypted_students = self.database.list_students().await?;
 

@@ -11,7 +11,7 @@ use crate::helper::parse_id;
 use crate::models::exam::{Exam, ExamResponse};
 use crate::models::student::{Student, StudentResponse};
 
-use super::i_database::IDatabase;
+use super::cp_database::CPDatabase;
 
 #[derive(Clone)]
 pub struct MongoDatabase {
@@ -69,7 +69,7 @@ impl MongoDatabase {
 }
 
 #[async_trait]
-impl IDatabase for MongoDatabase {
+impl CPDatabase for MongoDatabase {
     async fn list_students(&self) -> custom::Result<Vec<StudentResponse>> {
         let docs: Vec<Document> = self.list(self.coll_name_students).await.unwrap();
         let students: Vec<StudentResponse> = docs.into_iter().map(StudentResponse::from).collect();
