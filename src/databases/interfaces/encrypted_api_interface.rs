@@ -1,7 +1,7 @@
 use crate::{
     custom,
     models::{
-        exams::exam::{Exam, ExamResponse},
+        exams::{encrypted_exam_in::EncryptedExamIn, encrypted_exam_out::EncryptedExamOut},
         students::{
             encrypted_student_in::EncryptedStudentIn, encrypted_student_out::EncryptedStudentOut,
         },
@@ -24,9 +24,13 @@ pub trait EncryptedAPIInterface {
     ) -> custom::Result<EncryptedStudentOut>;
     async fn delete_student(&self, id: &str) -> custom::Result<()>;
 
-    async fn list_exams(&self) -> custom::Result<Vec<ExamResponse>>;
-    async fn find_exam(&self, id: &str) -> custom::Result<ExamResponse>;
-    async fn insert_exam(&self, exam: Exam) -> custom::Result<ExamResponse>;
-    async fn replace_exam(&self, id: &str, exam: Exam) -> custom::Result<ExamResponse>;
+    async fn list_exams(&self) -> custom::Result<Vec<EncryptedExamOut>>;
+    async fn find_exam(&self, id: &str) -> custom::Result<EncryptedExamOut>;
+    async fn insert_exam(&self, exam: EncryptedExamIn) -> custom::Result<EncryptedExamOut>;
+    async fn replace_exam(
+        &self,
+        id: &str,
+        exam: EncryptedExamIn,
+    ) -> custom::Result<EncryptedExamOut>;
     async fn delete_exam(&self, id: &str) -> custom::Result<()>;
 }

@@ -1,5 +1,5 @@
 use super::{encrypted_student_in::EncryptedStudentIn, score::Score, student_out::StudentOut};
-use crate::encryption::decrypt::Decrypt;
+use crate::encryption::decrypt::DecryptStudent;
 use chacha20poly1305::{aead::Aead, ChaCha20Poly1305, Nonce};
 use mongodb::bson::Document;
 use serde::{Deserialize, Serialize};
@@ -15,25 +15,49 @@ pub struct EncryptedStudentOut {
     pub nonce: String,
 }
 
-impl Decrypt for EncryptedStudentOut {
-    fn decrypt(self, cipher: &ChaCha20Poly1305) -> StudentOut {
-        let first_name_decoded = hex::decode(self.firstName).unwrap();
-        let last_name_decoded = hex::decode(self.lastName).unwrap();
+impl EncryptedStudentOut {
+    fn try_decrypt(
+        &self,
+        cipher: &ChaCha20Poly1305,
+    ) -> Result<StudentOut, Box<dyn std::error::Error>> {
+        let first_name_decoded = hex::decode(self.firstName.to_owned())?;
+        let last_name_decoded = hex::decode(self.lastName.to_owned())?;
 
-        let nonce_decoded = hex::decode(self.nonce).unwrap();
-        let nonce = Nonce::from_slice(&nonce_decoded);
+        let nonce_decoded = hex::decode(self.nonce.to_owned())?;
+        let nonce = Nonce::from_slice(nonce_decoded.as_ref());
 
-        let decrypted_first_name = cipher.decrypt(&nonce, first_name_decoded.as_ref()).unwrap();
-        let decrypted_last_name = cipher.decrypt(&nonce, last_name_decoded.as_ref()).unwrap();
+        let first_name_decrypted = cipher
+            .decrypt(&nonce, first_name_decoded.as_ref())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        let last_name_decrypted = cipher
+            .decrypt(&nonce, last_name_decoded.as_ref())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-        let first_name = String::from_utf8(decrypted_first_name).unwrap();
-        let last_name = String::from_utf8(decrypted_last_name).unwrap();
+        let first_name = String::from_utf8(first_name_decrypted)?;
+        let last_name = String::from_utf8(last_name_decrypted)?;
 
-        StudentOut {
-            id: self.id,
+        Ok(StudentOut {
+            id: self.id.to_owned(),
             firstName: first_name,
             lastName: last_name,
-            scores: self.scores,
+            scores: self.scores.to_owned(),
+        })
+    }
+}
+
+impl DecryptStudent for EncryptedStudentOut {
+    fn decrypt(&self, cipher: &ChaCha20Poly1305) -> StudentOut {
+        match self.try_decrypt(cipher) {
+            Ok(student) => student,
+            Err(_) => {
+                tracing::warn!("Failed to decrypt student {:?}", self);
+                StudentOut {
+                    id: self.id.to_owned(),
+                    firstName: "Failed to decrypt".to_string(),
+                    lastName: "Failed to decrypt".to_string(),
+                    scores: self.scores.to_owned(),
+                }
+            }
         }
     }
 }
@@ -70,6 +94,9 @@ impl From<Document> for EncryptedStudentOut {
                 )
             })
             .collect();
+
+        // TODO: This is a hack to get around the fact that the nonce is not stored in the database for old data
+        // Remove this once all data has been encrypted
         let nonce = match doc.get_str("nonce") {
             Ok(nonce) => nonce.to_string(),
             Err(_) => "missing".to_string(),

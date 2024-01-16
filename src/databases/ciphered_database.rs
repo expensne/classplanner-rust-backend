@@ -3,10 +3,13 @@ use chacha20poly1305::ChaCha20Poly1305;
 
 use crate::{
     custom,
-    encryption::decrypt::Decrypt,
-    encryption::encrypt::Encrypt,
+    encryption::decrypt::DecryptStudent,
+    encryption::{
+        decrypt::DecryptExam,
+        encrypt::{EncryptExam, EncryptStudent},
+    },
     models::{
-        exams::exam::{Exam, ExamResponse},
+        exams::{exam_in::ExamIn, exam_out::ExamOut},
         students::{student_in::StudentIn, student_out::StudentOut},
     },
 };
@@ -39,7 +42,6 @@ impl APIInterface for CipheredDatabase {
             .into_iter()
             .map(|student| student.decrypt(&self.cipher))
             .collect();
-
         Ok(students)
     }
 
@@ -72,23 +74,41 @@ impl APIInterface for CipheredDatabase {
         self.database.delete_student(id).await
     }
 
-    async fn list_exams(&self) -> custom::Result<Vec<ExamResponse>> {
-        self.database.list_exams().await
+    async fn list_exams(&self) -> custom::Result<Vec<ExamOut>> {
+        tracing::info!("Listing exams");
+        let encrypted_exams = self.database.list_exams().await?;
+        let exams = encrypted_exams
+            .into_iter()
+            .map(|exam| exam.decrypt(&self.cipher))
+            .collect();
+        Ok(exams)
     }
 
-    async fn find_exam(&self, id: &str) -> custom::Result<ExamResponse> {
-        self.database.find_exam(id).await
+    async fn find_exam(&self, id: &str) -> custom::Result<ExamOut> {
+        tracing::info!("Finding exam with id {}", id);
+        let encrypted_exam = self.database.find_exam(id).await?;
+        let exam = encrypted_exam.decrypt(&self.cipher);
+        Ok(exam)
     }
 
-    async fn insert_exam(&self, exam: Exam) -> custom::Result<ExamResponse> {
-        self.database.insert_exam(exam).await
+    async fn insert_exam(&self, exam: ExamIn) -> custom::Result<ExamOut> {
+        tracing::info!("Inserting exam {:?}", exam);
+        let encrypted_exam = exam.encrypt(&self.cipher);
+        let inserted_encrypted_exam = self.database.insert_exam(encrypted_exam).await?;
+        let inserted_exam = inserted_encrypted_exam.decrypt(&self.cipher);
+        Ok(inserted_exam)
     }
 
-    async fn replace_exam(&self, id: &str, exam: Exam) -> custom::Result<ExamResponse> {
-        self.database.replace_exam(id, exam).await
+    async fn replace_exam(&self, id: &str, exam: ExamIn) -> custom::Result<ExamOut> {
+        tracing::info!("Replacing exam with id {} with {:?}", id, exam);
+        let encrypted_exam = exam.encrypt(&self.cipher);
+        let replaced_encrypted_exam = self.database.replace_exam(id, encrypted_exam).await?;
+        let replaced_exam = replaced_encrypted_exam.decrypt(&self.cipher);
+        Ok(replaced_exam)
     }
 
     async fn delete_exam(&self, id: &str) -> custom::Result<()> {
+        tracing::info!("Deleting exam with id {}", id);
         self.database.delete_exam(id).await
     }
 }

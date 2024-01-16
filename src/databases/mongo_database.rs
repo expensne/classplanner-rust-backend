@@ -1,7 +1,8 @@
 use super::interfaces::encrypted_api_interface::EncryptedAPIInterface;
 use crate::custom;
 use crate::helper::parse_id;
-use crate::models::exams::exam::{Exam, ExamResponse};
+use crate::models::exams::encrypted_exam_in::EncryptedExamIn;
+use crate::models::exams::encrypted_exam_out::EncryptedExamOut;
 use crate::models::students::encrypted_student_in::EncryptedStudentIn;
 use crate::models::students::encrypted_student_out::EncryptedStudentOut;
 use axum::async_trait;
@@ -147,24 +148,24 @@ impl EncryptedAPIInterface for MongoDatabase {
         }
     }
 
-    async fn list_exams(&self) -> custom::Result<Vec<ExamResponse>> {
+    async fn list_exams(&self) -> custom::Result<Vec<EncryptedExamOut>> {
         let docs: Vec<Document> = self.list(self.coll_name_exams).await.unwrap();
-
-        let students: Vec<ExamResponse> = docs.into_iter().map(ExamResponse::from).collect();
+        let students: Vec<EncryptedExamOut> =
+            docs.into_iter().map(EncryptedExamOut::from).collect();
 
         Ok(students)
     }
 
-    async fn find_exam(&self, id: &str) -> custom::Result<ExamResponse> {
+    async fn find_exam(&self, id: &str) -> custom::Result<EncryptedExamOut> {
         let doc = self.find(self.coll_name_exams, id).await?;
 
         match doc {
-            Some(doc) => Ok(ExamResponse::from(doc)),
+            Some(doc) => Ok(EncryptedExamOut::from(doc)),
             None => Err(From::from("Exam not found")),
         }
     }
 
-    async fn insert_exam(&self, exam: Exam) -> custom::Result<ExamResponse> {
+    async fn insert_exam(&self, exam: EncryptedExamIn) -> custom::Result<EncryptedExamOut> {
         let result = self
             .database
             .collection(self.coll_name_exams)
@@ -173,12 +174,16 @@ impl EncryptedAPIInterface for MongoDatabase {
 
         let id = result.inserted_id.as_object_id().unwrap().to_hex();
 
-        let mut response = ExamResponse::from(exam);
+        let mut response = EncryptedExamOut::from(exam);
         response.id = id.to_string();
         Ok(response)
     }
 
-    async fn replace_exam(&self, id: &str, exam: Exam) -> custom::Result<ExamResponse> {
+    async fn replace_exam(
+        &self,
+        id: &str,
+        exam: EncryptedExamIn,
+    ) -> custom::Result<EncryptedExamOut> {
         let id_object = parse_id(id)?;
 
         let result = self
@@ -189,7 +194,7 @@ impl EncryptedAPIInterface for MongoDatabase {
 
         match result.modified_count {
             1 => {
-                let mut response = ExamResponse::from(exam);
+                let mut response = EncryptedExamOut::from(exam);
                 response.id = id.to_string();
                 Ok(response)
             }
@@ -203,7 +208,7 @@ impl EncryptedAPIInterface for MongoDatabase {
 
         let result: DeleteResult = self
             .database
-            .collection::<Collection<ExamResponse>>(self.coll_name_exams)
+            .collection::<Collection<EncryptedExamOut>>(self.coll_name_exams)
             .delete_one(doc! {"_id": id_object}, None)
             .await?;
 

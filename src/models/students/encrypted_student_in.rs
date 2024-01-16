@@ -1,5 +1,5 @@
 use super::{score::Score, student_in::StudentIn};
-use crate::encryption::encrypt::Encrypt;
+use crate::encryption::encrypt::EncryptStudent;
 use chacha20poly1305::{
     aead::{Aead, OsRng},
     AeadCore, ChaCha20Poly1305,
@@ -16,8 +16,8 @@ pub struct EncryptedStudentIn {
     pub nonce: String,
 }
 
-impl Encrypt for StudentIn {
-    fn encrypt(self, cipher: &ChaCha20Poly1305) -> EncryptedStudentIn {
+impl EncryptStudent for StudentIn {
+    fn encrypt(&self, cipher: &ChaCha20Poly1305) -> EncryptedStudentIn {
         let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
 
         let encrypted_first_name = cipher.encrypt(&nonce, self.firstName.as_ref()).unwrap();
@@ -30,7 +30,7 @@ impl Encrypt for StudentIn {
         EncryptedStudentIn {
             firstName: encrypted_first_name_encoded,
             lastName: encrypted_last_name_encoded,
-            scores: self.scores,
+            scores: self.scores.to_owned(),
             nonce: nonce_encoded,
         }
     }

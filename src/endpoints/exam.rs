@@ -5,7 +5,9 @@ use axum::{
     Json,
 };
 
-use crate::{consts::API_VERSION, helper::get_error_response, models::exams::exam::Exam, AppState};
+use crate::{
+    consts::API_VERSION, helper::get_error_response, models::exams::exam_in::ExamIn, AppState,
+};
 
 pub async fn get_exams(State(state): State<AppState>) -> impl IntoResponse {
     let exams = state.database.list_exams().await.unwrap();
@@ -32,7 +34,7 @@ pub async fn get_exam(State(state): State<AppState>, Path(id): Path<String>) -> 
 
 pub async fn post_exam(
     State(state): State<AppState>,
-    Json(payload): Json<Exam>,
+    Json(payload): Json<ExamIn>,
 ) -> impl IntoResponse {
     let exam = state
         .database
@@ -46,7 +48,7 @@ pub async fn post_exam(
 pub async fn put_exam(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<Exam>,
+    Json(payload): Json<ExamIn>,
 ) -> Response {
     let exam = state.database.replace_exam(&id, payload.to_owned()).await;
 

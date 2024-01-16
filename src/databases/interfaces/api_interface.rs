@@ -1,7 +1,7 @@
 use crate::{
     custom,
     models::{
-        exams::exam::{Exam, ExamResponse},
+        exams::{exam_in::ExamIn, exam_out::ExamOut},
         students::{student_in::StudentIn, student_out::StudentOut},
     },
 };
@@ -15,9 +15,9 @@ pub trait APIInterface {
     async fn replace_student(&self, id: &str, student: StudentIn) -> custom::Result<StudentOut>;
     async fn delete_student(&self, id: &str) -> custom::Result<()>;
 
-    async fn list_exams(&self) -> custom::Result<Vec<ExamResponse>>;
-    async fn find_exam(&self, id: &str) -> custom::Result<ExamResponse>;
-    async fn insert_exam(&self, exam: Exam) -> custom::Result<ExamResponse>;
-    async fn replace_exam(&self, id: &str, exam: Exam) -> custom::Result<ExamResponse>;
+    async fn list_exams(&self) -> custom::Result<Vec<ExamOut>>;
+    async fn find_exam(&self, id: &str) -> custom::Result<ExamOut>;
+    async fn insert_exam(&self, exam: ExamIn) -> custom::Result<ExamOut>;
+    async fn replace_exam(&self, id: &str, exam: ExamIn) -> custom::Result<ExamOut>;
     async fn delete_exam(&self, id: &str) -> custom::Result<()>;
 }
