@@ -8,8 +8,9 @@ use mongodb::{Client, Collection, Cursor, Database};
 
 use crate::custom;
 use crate::helper::parse_id;
-use crate::models::exam::{Exam, ExamResponse};
-use crate::models::student::{Student, StudentResponse};
+use crate::models::exams::exam::{Exam, ExamResponse};
+use crate::models::students::student_in::StudentIn;
+use crate::models::students::student_out::StudentOut;
 
 use super::cp_database::CPDatabase;
 
@@ -70,23 +71,23 @@ impl MongoDatabase {
 
 #[async_trait]
 impl CPDatabase for MongoDatabase {
-    async fn list_students(&self) -> custom::Result<Vec<StudentResponse>> {
+    async fn list_students(&self) -> custom::Result<Vec<StudentOut>> {
         let docs: Vec<Document> = self.list(self.coll_name_students).await.unwrap();
-        let students: Vec<StudentResponse> = docs.into_iter().map(StudentResponse::from).collect();
+        let students: Vec<StudentOut> = docs.into_iter().map(StudentOut::from).collect();
 
         Ok(students)
     }
 
-    async fn find_student(&self, id: &str) -> custom::Result<StudentResponse> {
+    async fn find_student(&self, id: &str) -> custom::Result<StudentOut> {
         let doc = self.find(self.coll_name_students, id).await?;
 
         match doc {
-            Some(doc) => Ok(StudentResponse::from(doc)),
+            Some(doc) => Ok(StudentOut::from(doc)),
             None => Err(From::from("Student not found")),
         }
     }
 
-    async fn insert_student(&self, student: Student) -> custom::Result<StudentResponse> {
+    async fn insert_student(&self, student: StudentIn) -> custom::Result<StudentOut> {
         let result = self
             .database
             .collection(self.coll_name_students)
@@ -95,12 +96,12 @@ impl CPDatabase for MongoDatabase {
 
         let id = result.inserted_id.as_object_id().unwrap().to_hex();
 
-        let mut response = StudentResponse::from(student);
+        let mut response = StudentOut::from(student);
         response.id = id.to_string();
         Ok(response)
     }
 
-    async fn replace_student(&self, id: &str, student: Student) -> custom::Result<StudentResponse> {
+    async fn replace_student(&self, id: &str, student: StudentIn) -> custom::Result<StudentOut> {
         let id_object = parse_id(id)?;
 
         let result = self
@@ -111,7 +112,7 @@ impl CPDatabase for MongoDatabase {
 
         match result.modified_count {
             1 => {
-                let mut response = StudentResponse::from(student);
+                let mut response = StudentOut::from(student);
                 response.id = id.to_string();
                 Ok(response)
             }
@@ -125,7 +126,7 @@ impl CPDatabase for MongoDatabase {
 
         let result: DeleteResult = self
             .database
-            .collection::<Collection<StudentResponse>>(self.coll_name_students)
+            .collection::<Collection<StudentOut>>(self.coll_name_students)
             .delete_one(doc! {"_id": id_object}, None)
             .await?;
 

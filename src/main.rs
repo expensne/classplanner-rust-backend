@@ -2,7 +2,6 @@ use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use axum::http::{HeaderValue, Method};
 use axum::{routing::get, routing::post, Router};
 use consts::API_VERSION;
-use databases::encrypted_database::EncryptedDatabase;
 use databases::cp_database::CPDatabase;
 use databases::mongo_database::MongoDatabase;
 use dotenv::dotenv;
@@ -40,7 +39,6 @@ async fn main() -> custom::Result<()> {
     let mongo_database_name = env::var("MONGODB_DATABASE_NAME").unwrap();
     let mongo_user = env::var("MONGODB_USER").unwrap();
     let mongo_password = env::var("MONGODB_PASSWORD").unwrap();
-    let encryption_key = env::var("ENCRYPTION_KEY").unwrap();
 
     // Create DB
     let mongo = MongoDatabase::new(
@@ -51,15 +49,9 @@ async fn main() -> custom::Result<()> {
     )
     .await?;
 
-    let encrypted_mongo = EncryptedDatabase::new(
-        Box::new(mongo),
-        encryption_key,
-    )
-    .await?;
-
     // Create API
     let state = AppState {
-        database: Arc::new(encrypted_mongo),
+        database: Arc::new(mongo),
     };
 
     let cors = CorsLayer::new()

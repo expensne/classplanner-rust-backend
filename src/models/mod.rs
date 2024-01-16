@@ -1,2 +1,2 @@
-pub mod student;
-pub mod exam;
+pub mod students;
+pub mod exams;

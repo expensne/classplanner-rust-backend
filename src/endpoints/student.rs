@@ -5,7 +5,10 @@ use axum::{
     Json,
 };
 
-use crate::{consts::API_VERSION, helper::get_error_response, models::student::Student, AppState};
+use crate::{
+    consts::API_VERSION, helper::get_error_response, models::students::student_in::StudentIn,
+    AppState,
+};
 
 pub async fn get_student(State(state): State<AppState>, Path(id): Path<String>) -> Response {
     let student = state.database.find_student(&id).await;
@@ -35,7 +38,7 @@ pub async fn get_students(State(state): State<AppState>) -> impl IntoResponse {
 
 pub async fn post_student(
     State(state): State<AppState>,
-    Json(payload): Json<Student>,
+    Json(payload): Json<StudentIn>,
 ) -> impl IntoResponse {
     let student = state
         .database
@@ -49,7 +52,7 @@ pub async fn post_student(
 pub async fn put_student(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<Student>,
+    Json(payload): Json<StudentIn>,
 ) -> Response {
     let student = state
         .database

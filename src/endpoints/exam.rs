@@ -5,7 +5,7 @@ use axum::{
     Json,
 };
 
-use crate::{consts::API_VERSION, helper::get_error_response, models::exam::Exam, AppState};
+use crate::{consts::API_VERSION, helper::get_error_response, models::exams::exam::Exam, AppState};
 
 pub async fn get_exams(State(state): State<AppState>) -> impl IntoResponse {
     let exams = state.database.list_exams().await.unwrap();
