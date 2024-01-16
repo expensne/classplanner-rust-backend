@@ -1,5 +1,6 @@
 use super::{encrypted_student_in::EncryptedStudentIn, score::Score, student_out::StudentOut};
 use crate::encryption::decrypt::Decrypt;
+use chacha20poly1305::{aead::Aead, ChaCha20Poly1305, Nonce};
 use mongodb::bson::Document;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,14 +16,23 @@ pub struct EncryptedStudentOut {
 }
 
 impl Decrypt for EncryptedStudentOut {
-    fn decrypt(self, key: &str) -> StudentOut {
-        let decrypted_first_name = self.firstName.replace(key, ""); // TODO
-        let decrypted_last_name = self.lastName.replace(key, ""); // TODO
+    fn decrypt(self, cipher: &ChaCha20Poly1305) -> StudentOut {
+        let first_name_decoded = hex::decode(self.firstName).unwrap();
+        let last_name_decoded = hex::decode(self.lastName).unwrap();
+
+        let nonce_decoded = hex::decode(self.nonce).unwrap();
+        let nonce = Nonce::from_slice(&nonce_decoded);
+
+        let decrypted_first_name = cipher.decrypt(&nonce, first_name_decoded.as_ref()).unwrap();
+        let decrypted_last_name = cipher.decrypt(&nonce, last_name_decoded.as_ref()).unwrap();
+
+        let first_name = String::from_utf8(decrypted_first_name).unwrap();
+        let last_name = String::from_utf8(decrypted_last_name).unwrap();
 
         StudentOut {
             id: self.id,
-            firstName: decrypted_first_name,
-            lastName: decrypted_last_name,
+            firstName: first_name,
+            lastName: last_name,
             scores: self.scores,
         }
     }
@@ -64,7 +74,6 @@ impl From<Document> for EncryptedStudentOut {
             Ok(nonce) => nonce.to_string(),
             Err(_) => "missing".to_string(),
         };
-
 
         Self {
             id,

@@ -1,4 +1,4 @@
-use super::encrypted_api_interface::EncryptedAPIInterface;
+use super::interfaces::encrypted_api_interface::EncryptedAPIInterface;
 use crate::custom;
 use crate::helper::parse_id;
 use crate::models::exams::exam::{Exam, ExamResponse};
@@ -69,6 +69,7 @@ impl MongoDatabase {
 #[async_trait]
 impl EncryptedAPIInterface for MongoDatabase {
     async fn list_students(&self) -> custom::Result<Vec<EncryptedStudentOut>> {
+        tracing::info!("Listing students");
         let docs: Vec<Document> = self.list(self.coll_name_students).await.unwrap();
         let students: Vec<EncryptedStudentOut> =
             docs.into_iter().map(EncryptedStudentOut::from).collect();
@@ -77,6 +78,7 @@ impl EncryptedAPIInterface for MongoDatabase {
     }
 
     async fn find_student(&self, id: &str) -> custom::Result<EncryptedStudentOut> {
+        tracing::info!("Finding student with id {}", id);
         let doc = self.find(self.coll_name_students, id).await?;
 
         match doc {
@@ -89,6 +91,7 @@ impl EncryptedAPIInterface for MongoDatabase {
         &self,
         student: EncryptedStudentIn,
     ) -> custom::Result<EncryptedStudentOut> {
+        tracing::info!("Inserting student {:?}", student);
         let result = self
             .database
             .collection(self.coll_name_students)
@@ -107,6 +110,7 @@ impl EncryptedAPIInterface for MongoDatabase {
         id: &str,
         student: EncryptedStudentIn,
     ) -> custom::Result<EncryptedStudentOut> {
+        tracing::info!("Replacing student with id {} with {:?}", id, student);
         let id_object = parse_id(id)?;
 
         let result = self
@@ -127,6 +131,7 @@ impl EncryptedAPIInterface for MongoDatabase {
     }
 
     async fn delete_student(&self, id: &str) -> custom::Result<()> {
+        tracing::info!("Deleting student with id {}", id);
         let id_object = parse_id(id)?;
 
         let result: DeleteResult = self

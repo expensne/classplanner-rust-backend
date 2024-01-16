@@ -1,4 +1,5 @@
 use axum::async_trait;
+use chacha20poly1305::ChaCha20Poly1305;
 
 use crate::{
     custom,
@@ -10,56 +11,64 @@ use crate::{
     },
 };
 
-use super::{api_interface::APIInterface, encrypted_api_interface::EncryptedAPIInterface};
+use super::{
+    interfaces::api_interface::APIInterface,
+    interfaces::encrypted_api_interface::EncryptedAPIInterface,
+};
 
 pub struct CipheredDatabase {
     database: Box<dyn EncryptedAPIInterface + Send + Sync>,
-    key: String,
+    cipher: ChaCha20Poly1305,
 }
 
 impl CipheredDatabase {
     pub fn new(
         database: Box<dyn EncryptedAPIInterface + Send + Sync>,
-        key: String,
+        cipher: ChaCha20Poly1305,
     ) -> custom::Result<Self> {
-        Ok(Self { database, key })
+        Ok(Self { database, cipher })
     }
 }
 
 #[async_trait]
 impl APIInterface for CipheredDatabase {
     async fn list_students(&self) -> custom::Result<Vec<StudentOut>> {
+        tracing::info!("Listing students");
         let encrypted_students = self.database.list_students().await?;
         let students = encrypted_students
             .into_iter()
-            .map(|student| student.decrypt(&self.key))
+            .map(|student| student.decrypt(&self.cipher))
             .collect();
-        
+
         Ok(students)
     }
 
     async fn find_student(&self, id: &str) -> custom::Result<StudentOut> {
+        tracing::info!("Finding student with id {}", id);
         let encrypted_student = self.database.find_student(id).await?;
-        let student = encrypted_student.decrypt(&self.key);
+        let student = encrypted_student.decrypt(&self.cipher);
         Ok(student)
     }
 
     async fn insert_student(&self, student: StudentIn) -> custom::Result<StudentOut> {
-        let encrypted_student = student.encrypt(&self.key);
+        tracing::info!("Inserting student {:?}", student);
+        let encrypted_student = student.encrypt(&self.cipher);
         let inserted_encrypted_student = self.database.insert_student(encrypted_student).await?;
-        let inserted_student = inserted_encrypted_student.decrypt(&self.key);
+        let inserted_student = inserted_encrypted_student.decrypt(&self.cipher);
         Ok(inserted_student)
     }
 
     async fn replace_student(&self, id: &str, student: StudentIn) -> custom::Result<StudentOut> {
-        let encrypted_student = student.encrypt(&self.key);
+        tracing::info!("Replacing student with id {} with {:?}", id, student);
+        let encrypted_student = student.encrypt(&self.cipher);
         let replaced_encrypted_student =
             self.database.replace_student(id, encrypted_student).await?;
-        let replaced_student = replaced_encrypted_student.decrypt(&self.key);
+        let replaced_student = replaced_encrypted_student.decrypt(&self.cipher);
         Ok(replaced_student)
     }
 
     async fn delete_student(&self, id: &str) -> custom::Result<()> {
+        tracing::info!("Deleting student with id {}", id);
         self.database.delete_student(id).await
     }
 
