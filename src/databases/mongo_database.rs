@@ -11,7 +11,7 @@ use crate::helper::parse_id;
 use crate::models::exam::{Exam, ExamResponse};
 use crate::models::student::{Student, StudentResponse};
 
-use super::database::IDatabase;
+use super::i_database::IDatabase;
 
 #[derive(Clone)]
 pub struct MongoDatabase {
