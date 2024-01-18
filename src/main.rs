@@ -61,7 +61,8 @@ async fn main() -> custom::Result<()> {
     };
 
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+        //.allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+        .allow_origin("https://cp.dev101.de".parse::<HeaderValue>().unwrap())
         .allow_credentials(true)
         .allow_methods([Method::GET, Method::PUT, Method::POST, Method::DELETE])
         .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]);

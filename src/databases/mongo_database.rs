@@ -1,4 +1,4 @@
-use super::interfaces::encrypted_api_interface::EncryptedAPIInterface;
+use super::interfaces::ciphered_api_interface::CipheredAPIInterface;
 use crate::custom;
 use crate::helper::parse_id;
 use crate::models::exams::encrypted_exam_in::EncryptedExamIn;
@@ -68,7 +68,7 @@ impl MongoDatabase {
 }
 
 #[async_trait]
-impl EncryptedAPIInterface for MongoDatabase {
+impl CipheredAPIInterface for MongoDatabase {
     async fn list_students(&self) -> custom::Result<Vec<EncryptedStudentOut>> {
         tracing::info!("Listing students");
         let docs: Vec<Document> = self.list(self.coll_name_students).await.unwrap();

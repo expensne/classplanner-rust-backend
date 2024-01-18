@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 pub struct EncryptedExamOut {
     pub id: String,
     pub name: String,
-    pub maxPoints: f64,
-    pub gradingScale: GradingScale,
+    pub maxPoints: String,
+    pub gradingScale: String,
     pub nonce: String,
 }
 
@@ -20,21 +20,31 @@ impl EncryptedExamOut {
         cipher: &ChaCha20Poly1305,
     ) -> Result<ExamOut, Box<dyn std::error::Error>> {
         let name_decoded = hex::decode(self.name.to_owned())?;
-
+        let max_points_decoded = hex::decode(self.maxPoints.to_owned())?;
+        let grading_scale_decoded = hex::decode(self.gradingScale.to_owned())?;
         let nonce_decoded = hex::decode(self.nonce.to_owned())?;
+
         let nonce = Nonce::from_slice(&nonce_decoded);
 
         let name_decrypted = cipher
             .decrypt(&nonce, name_decoded.as_ref())
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        let max_points_decrypted = cipher
+            .decrypt(&nonce, max_points_decoded.as_ref())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        let grading_scale_decrypted = cipher
+            .decrypt(&nonce, grading_scale_decoded.as_ref())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
         let name = String::from_utf8(name_decrypted)?;
+        let max_points = f64::from_ne_bytes(max_points_decrypted.try_into().unwrap());
+        let grading_scale: GradingScale = serde_json::from_slice(&grading_scale_decrypted)?;
 
         Ok(ExamOut {
             id: self.id.to_owned(),
             name,
-            maxPoints: self.maxPoints,
-            gradingScale: self.gradingScale.to_owned(),
+            maxPoints: max_points,
+            gradingScale: grading_scale,
         })
     }
 }
@@ -48,8 +58,15 @@ impl DecryptExam for EncryptedExamOut {
                 ExamOut {
                     id: self.id.to_owned(),
                     name: "Failed to decrypt".to_string(),
-                    maxPoints: self.maxPoints,
-                    gradingScale: self.gradingScale.to_owned(),
+                    maxPoints: -1.0,
+                    gradingScale: GradingScale {
+                        A: -1.0,
+                        B: -1.0,
+                        C: -1.0,
+                        D: -1.0,
+                        E: -1.0,
+                        F: -1.0,
+                    },
                 }
             }
         }
@@ -72,28 +89,15 @@ impl From<Document> for EncryptedExamOut {
     fn from(doc: Document) -> Self {
         let id = doc.get_object_id("_id").unwrap().to_hex();
         let name = doc.get_str("name").unwrap().to_string();
-        let max_points = doc.get_f64("maxPoints").unwrap();
-        let grading_scale = doc.get_document("gradingScale").unwrap();
-
-        // TODO: This is a hack to get around the fact that the nonce is not stored in the database for old data
-        // Remove this once all data has been encrypted
-        let nonce = match doc.get_str("nonce") {
-            Ok(nonce) => nonce.to_string(),
-            Err(_) => "missing".to_string(),
-        };
+        let max_points = doc.get_str("maxPoints").unwrap().to_string();
+        let grading_scale = doc.get_str("gradingScale").unwrap().to_string();
+        let nonce = doc.get_str("nonce").unwrap().to_string();
 
         Self {
             id,
             name,
             maxPoints: max_points,
-            gradingScale: GradingScale {
-                A: grading_scale.get_f64("A").unwrap(),
-                B: grading_scale.get_f64("B").unwrap(),
-                C: grading_scale.get_f64("C").unwrap(),
-                D: grading_scale.get_f64("D").unwrap(),
-                E: grading_scale.get_f64("E").unwrap(),
-                F: grading_scale.get_f64("F").unwrap(),
-            },
+            gradingScale: grading_scale,
             nonce,
         }
     }

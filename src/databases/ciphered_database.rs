@@ -16,17 +16,17 @@ use crate::{
 
 use super::{
     interfaces::api_interface::APIInterface,
-    interfaces::encrypted_api_interface::EncryptedAPIInterface,
+    interfaces::ciphered_api_interface::CipheredAPIInterface,
 };
 
 pub struct CipheredDatabase {
-    database: Box<dyn EncryptedAPIInterface + Send + Sync>,
+    database: Box<dyn CipheredAPIInterface + Send + Sync>,
     cipher: ChaCha20Poly1305,
 }
 
 impl CipheredDatabase {
     pub fn new(
-        database: Box<dyn EncryptedAPIInterface + Send + Sync>,
+        database: Box<dyn CipheredAPIInterface + Send + Sync>,
         cipher: ChaCha20Poly1305,
     ) -> custom::Result<Self> {
         Ok(Self { database, cipher })

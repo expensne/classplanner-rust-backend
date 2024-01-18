@@ -10,7 +10,7 @@ use crate::{
 use axum::async_trait;
 
 #[async_trait]
-pub trait EncryptedAPIInterface {
+pub trait CipheredAPIInterface {
     async fn list_students(&self) -> custom::Result<Vec<EncryptedStudentOut>>;
     async fn find_student(&self, id: &str) -> custom::Result<EncryptedStudentOut>;
     async fn insert_student(
